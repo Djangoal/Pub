@@ -8,4 +8,5 @@ p4a apk \
   --androidapi=31 \
   --ndk-api=21 \
   --permission=INTERNET \
-  --permission=ACCESS_NETWORK_STATE
+  --permission=ACCESS_NETWORK_STATE \
+  -- arch = armeabi-v7a
