@@ -1,0 +1,75 @@
+name: Build APK with p4a
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip openjdk-17-jdk wget git python3-pip
+          pip install cython virtualenv
+
+      - name: Set up Android SDK
+        run: |
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
+          unzip cmdline-tools.zip
+          mv cmdline-tools latest
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+
+      - name: Set environment variables
+        run: |
+          echo "export ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "export PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$PATH" >> $GITHUB_ENV
+          echo "export PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Accept licenses and install SDK components
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0" "ndk;25.2.9519653"
+
+      - name: Install python-for-android
+        run: |
+          git clone https://github.com/kivy/python-for-android.git
+          cd python-for-android
+          pip install -e .
+
+      - name: Build APK with p4a
+        run: |
+          mkdir -p dist
+          p4a apk \
+            --private . \
+            --package=org.test.apkp4a \
+            --name="DemoP4A" \
+            --version=0.1 \
+            --bootstrap=sdl2 \
+            --requirements=python3,kivy \
+            --permission=INTERNET \
+            --permission=ACCESS_NETWORK_STATE \
+            --androidapi=31 \
+            --ndk-api=21 \
+            --arch=armeabi-v7a \
+            --output dist/app.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: p4a-apk
+          path: dist/app.apk
