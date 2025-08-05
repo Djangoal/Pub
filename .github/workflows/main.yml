@@ -69,8 +69,6 @@ jobs:
 
     - name: Build APK with p4a
       run: |
-        export ANDROID_HOME=$HOME/android-sdk
-        export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
         p4a apk \
           --private . \
           --package=org.test.myapp \
