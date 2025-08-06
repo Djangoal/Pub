@@ -66,15 +66,22 @@ jobs:
         echo "NDK_DIR:"
         ls -l $NDK_DIR
 
+    
+    - name: Vérifie contenu de Pub/app
+      run: |
+       ls -lh Pub/app
+
+       
     - name: Build APK with p4a
       run: |
-       ./venv/bin/p4a apk \
-       --private ./app \
+       source venv/bin/activate
+       p4a apk \
+       --private Pub/app \
        --package=org.test.myapp \
        --name "MyApp" \
        --version 0.1 \
        --bootstrap=sdl2 \
-       --requirements=python3,kivy \
+       --requirements=python3,kivy,kivmob \
        --sdk-dir=$SDK_DIR \
        --ndk-dir=$ANDROID_NDK_HOME \
        --android-api=33 \
