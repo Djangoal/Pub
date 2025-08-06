@@ -69,7 +69,7 @@ jobs:
     
     - name: Vérifie contenu de Pub/app
       run: |
-       ls -lh Pub/app
+       ls -lh app
 
        
     - name: Build APK with p4a
