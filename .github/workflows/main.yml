@@ -67,19 +67,18 @@ jobs:
         ls -l $NDK_DIR
 
     - name: Build APK with p4a
-      run: |
-        source venv/bin/activate
-        p4a apk \
-          --private . \
-          --package=org.test.myapp \
-          --name "MyApp" \
-          --version 0.1 \
-          --bootstrap=sdl2 \
-          --requirements=python3,kivy \
-          --sdk-dir=$SDK_DIR \
-          --ndk-dir=$NDK_DIR \
-          --android-api=33 \
-          --arch=armeabi-v7a
+  run: |
+    ./venv/bin/p4a apk \
+      --dir Pub \
+      --package=org.test.myapp \
+      --name "MyApp" \
+      --version 0.1 \
+      --bootstrap=sdl2 \
+      --requirements=python3,kivy \
+      --sdk-dir=$SDK_DIR \
+      --ndk-dir=$ANDROID_NDK_HOME \
+      --android-api=33 \
+      --arch=armeabi-v7a
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
