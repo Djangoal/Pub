@@ -85,7 +85,13 @@ jobs:
        --sdk-dir=$SDK_DIR \
        --ndk-dir=$ANDROID_NDK_HOME \
        --android-api=33 \
-       --arch=armeabi-v7a
+       --arch=armeabi-v7a \
+       --add-jar app/libs/play-services-ads-21.0.0.aar \
+       --debug
+
+    - name: Check if APK was built
+      run: |
+       ls -lh ./bin || echo "Aucun APK généré"
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
