@@ -69,7 +69,7 @@ jobs:
     - name: Build APK with p4a
       run: |
        ./venv/bin/p4a apk \
-       --dir Pub \
+       --private Pub \
        --package=org.test.myapp \
        --name "MyApp" \
        --version 0.1 \
