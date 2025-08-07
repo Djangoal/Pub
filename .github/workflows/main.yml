@@ -90,6 +90,17 @@ jobs:
        --debug \
        || (echo "❌ BUILD FAILED ❌" && cat .p4a/last_build.json || echo "Aucun log dans .p4a")
 
+
+    - name: Affiche le contenu de .p4a/last_build.json s'il existe
+      if: always()
+      run: |
+       if [ -f .p4a/last_build.json ]; then
+       echo "📄 Contenu de .p4a/last_build.json :"
+       cat .p4a/last_build.json
+       else
+       echo "⚠️ Aucun fichier .p4a/last_build.json trouvé."
+       fi
+       
     - name: Check if APK was built
       run: |
        ls -lh ./bin || echo "Aucun APK généré"
