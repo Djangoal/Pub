@@ -1,0 +1,23 @@
+./venv/bin/p4a apk --private ./app \
+  --package=org.example.monapp \
+  --name="Mon budget perso" \
+  --version=0.1 \
+  --bootstrap=sdl2 \
+  --icon=logo.png \
+  --presplash=app/logo1.png \
+  --requirements=python3,kivy,kivmob,pyjnius \
+  --arch=armeabi-v7a \
+  --sdk_dir=$SDK_DIR \
+  --ndk_dir=$ANDROID_NDK_HOME \
+  --android_api=36 \
+  --orientation=portrait \
+  --dist-name=monapp \
+  --permission=INTERNET \
+  --permission=ACCESS_NETWORK_STATE \
+  --add-aar=app/libs/play-services-ads-21.0.0.aar \
+  --add-aar=app/libs/play-services-ads-lite-21.0.0.aar \
+  --add-aar=app/libs/play-services-basement-17.6.0.aar \
+  --add-aar=app/libs/play-services-tasks-17.2.1.aar \
+  --add-aar=app/libs/play-services-ads-base-21.0.0.aar \
+  --add-aar=app/libs/play-services-ads-identifier-17.0.0.aar \
+  --debug
