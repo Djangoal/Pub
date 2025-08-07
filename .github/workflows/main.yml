@@ -44,7 +44,7 @@ jobs:
           --name "TestApp" \
           --version 1.0 \
           --bootstrap=sdl2 \
-          --requirements=python3,kivy \
+          --requirements=kivy \
           --arch=armeabi-v7a \
           --add-jar Pub/app/libs/play-services-ads-21.0.0.aar \
           --output=./bin
