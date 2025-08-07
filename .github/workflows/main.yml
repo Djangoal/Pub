@@ -87,7 +87,8 @@ jobs:
        --android-api=33 \
        --arch=armeabi-v7a \
        --add-jar app/libs/play-services-ads-21.0.0.aar \
-       --debug
+       --debug \
+       || (echo "❌ BUILD FAILED ❌" && cat .p4a/last_build.json || echo "Aucun log dans .p4a")
 
     - name: Check if APK was built
       run: |
