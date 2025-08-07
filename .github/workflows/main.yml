@@ -70,8 +70,7 @@ jobs:
           --debug
           --permission=INTERNET
           --permission=ACCESS_NETWORK_STATE
-          --add-aar=app/libs/play-services-ads-21.0.0.aar
-
+          
     - name: Rename APK
       run: |
         APK_FILE=$(find . -name "*.apk" | head -n 1)
