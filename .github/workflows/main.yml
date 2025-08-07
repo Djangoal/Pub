@@ -73,12 +73,12 @@ jobs:
           --permission=INTERNET \
           --permission=ACCESS_NETWORK_STATE \
           --debug
-          # --add-aar=app/libs/play-services-ads-21.0.0.aar \
-          # --add-aar=app/libs/play-services-ads-lite-21.0.0.aar \
-          # --add-aar=app/libs/play-services-basement-17.6.0.aar \
-          # --add-aar=app/libs/play-services-tasks-17.2.1.aar \
-          # --add-aar=app/libs/play-services-ads-base-21.0.0.aar \
-          # --add-aar=app/libs/play-services-ads-identifier-17.0.0.aar
+          --add-aar=app/libs/play-services-ads-21.0.0.aar \
+          --add-aar=app/libs/play-services-ads-lite-21.0.0.aar \
+          --add-aar=app/libs/play-services-basement-17.6.0.aar \
+          --add-aar=app/libs/play-services-tasks-17.2.1.aar \
+          --add-aar=app/libs/play-services-ads-base-21.0.0.aar \
+          --add-aar=app/libs/play-services-ads-identifier-17.0.0.aar
 
     - name: Rename APK
       run: |
