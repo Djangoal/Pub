@@ -60,8 +60,6 @@ jobs:
           --name="Mon budget perso 2" \
           --version=0.1 \
           --bootstrap=sdl2 \
-          --icon=logo.png \
-          --presplash=app/logo1.png \
           --requirements=python3,kivy,kivmob \
           --arch=armeabi-v7a \
           --sdk_dir=$SDK_DIR \
