@@ -1,3 +1,10 @@
+#!/bin/bash
+
+# Définir les chemins
+export SDK_DIR="$PWD/android-sdk"
+export ANDROID_NDK_HOME="$SDK_DIR/ndk/25.2.9519653"
+
+# Lancer la compilation
 ./venv/bin/p4a apk --private ./app \
   --package=org.example.monapp \
   --name="Mon budget perso" \
