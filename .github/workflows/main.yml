@@ -60,7 +60,7 @@ jobs:
           --name="Mon budget perso 2" \
           --version=0.1 \
           --bootstrap=sdl2 \
-          --requirements=python3,kivy,kivmob \
+          --requirements=python3,kivy,pyjnius,kivmob \
           --arch=armeabi-v7a \
           --sdk_dir=$SDK_DIR \
           --ndk_dir=$ANDROID_NDK_HOME \
@@ -68,6 +68,9 @@ jobs:
           --orientation=portrait \
           --dist-name=monapp2 \
           --debug
+          --permission=INTERNET
+          --permission=ACCESS_NETWORK_STATE
+          --add-aar=app/libs/play-services-ads-21.0.0.aar
 
     - name: Rename APK
       run: |
