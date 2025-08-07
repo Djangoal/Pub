@@ -1,61 +1,102 @@
 name: Build APK with p4a
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      SDK_DIR: ${{ github.workspace }}/android-sdk
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
+      NDK_DIR: ${{ github.workspace }}/android-sdk/ndk/25.2.9519653
+      ANDROID_NDK_HOME: ${{ github.workspace }}/android-sdk/ndk/25.2.9519653
+
     steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: 3.10
+        python-version: "3.10"
 
-    - name: Install dependencies
+    - name: Install system dependencies
       run: |
-        sudo apt update
-        sudo apt install -y libffi-dev libssl-dev libsqlite3-dev libbz2-dev \
-                            libncurses5-dev libgdbm-dev zlib1g-dev libnss3-dev \
-                            libreadline-dev liblzma-dev unzip openjdk-17-jdk \
-                            python3-pip
-        pip install virtualenv
-        virtualenv venv
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential libltdl-dev \
+          zip unzip openjdk-17-jdk python3-pip \
+          libncurses-dev libtool libtool-bin automake autoconf pkg-config m4
+    - name: Setup Python, virtualenv and install python-for-android
+      run: |
+        python3 -m venv venv
         source venv/bin/activate
         pip install --upgrade pip
-        pip install python-for-android
-
+        pip install cython
+        pip install git+https://github.com/kivy/python-for-android.git
+    - name: Download Android SDK and NDK
+      run: |
+        mkdir -p $SDK_DIR
+        curl -s https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
+        unzip -q cmdline-tools.zip -d $SDK_DIR
+        mv $SDK_DIR/cmdline-tools $SDK_DIR/cmdline-tools-temp
+        mkdir -p $SDK_DIR/cmdline-tools/latest
+        mv $SDK_DIR/cmdline-tools-temp/* $SDK_DIR/cmdline-tools/latest
+        yes | $SDK_DIR/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK_DIR --licenses
+        $SDK_DIR/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK_DIR \
+          "platform-tools" \
+          "platforms;android-33" \
+          "build-tools;33.0.2" \
+          "ndk;25.2.9519653"
+    - name: Clean auto* build caches (optional)
+      run: |
+        find . -name "aclocal.m4" -delete
+        find . -name "autom4te.cache" -type d -exec rm -rf {} +
+    - name: Debug SDK & NDK directories
+      run: |
+        echo "SDK_DIR:"
+        ls -l $SDK_DIR
+        echo "NDK_DIR:"
+        ls -l $NDK_DIR
+    
     - name: Vérifie contenu de Pub/app
       run: |
-        ls -lh Pub/app
-
-    - name: Build APK
+       ls -lh app
+       
+    - name: Build APK with p4a
       run: |
-        source venv/bin/activate
-        p4a apk \
-          --src Pub/app \
-          --package=com.example.testapp \
-          --name "TestApp" \
-          --version 1.0 \
-          --bootstrap=sdl2 \
-          --requirements=kivy \
-          --arch=armeabi-v7a \
-          --add-jar Pub/app/libs/play-services-ads-21.0.0.aar \
-          --output=./bin
-
-    - name: Vérifie si APK généré
+       source venv/bin/activate
+       p4a apk \
+       --private app \
+       --package=org.test.myapp \
+       --name "MyApp" \
+       --version 0.1 \
+       --bootstrap=sdl2 \
+       --requirements=python3,kivy,kivmob \
+       --sdk-dir=$SDK_DIR \
+       --ndk-dir=$ANDROID_NDK_HOME \
+       --android-api=33 \
+       --arch=armeabi-v7a \
+       --add-jar app/libs/play-services-ads-21.0.0.aar \
+       --debug \
+       || (echo "❌ BUILD FAILED ❌" && cat .p4a/last_build.json || echo "Aucun log dans .p4a")
+    - name: Affiche le contenu de .p4a/last_build.json s'il existe
+      if: always()
       run: |
-        ls -lh ./bin || echo "Aucun APK généré"
-
+       if [ -f .p4a/last_build.json ]; then
+       echo "📄 Contenu de .p4a/last_build.json :"
+       cat .p4a/last_build.json
+       else
+       echo "⚠️ Aucun fichier .p4a/last_build.json trouvé."
+       fi
+       
+    - name: Check if APK was built
+      run: |
+       ls -lh ./bin || echo "Aucun APK généré"
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: myapp-apk
         path: ./bin/*.apk
-        if-no-files-found: warn
