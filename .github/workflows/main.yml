@@ -17,10 +17,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
+    
 
     - name: Install system dependencies
       run: |
@@ -50,10 +47,13 @@ jobs:
           "platforms;android-33" \
           "build-tools;33.0.2" \
           "ndk;25.2.9519653"
-    - name: Clean auto* build caches (optional)
+
+    - name: Prepare build environment
       run: |
         find . -name "aclocal.m4" -delete
         find . -name "autom4te.cache" -type d -exec rm -rf {} +
+
+        
     - name: Debug SDK & NDK directories
       run: |
         echo "SDK_DIR:"
@@ -67,21 +67,21 @@ jobs:
        
     - name: Build APK with p4a
       run: |
-       source venv/bin/activate
-       p4a apk \
-       --private app \
-       --package=org.test.myapp \
-       --name "MyApp" \
-       --version 0.1 \
-       --bootstrap=sdl2 \
-       --requirements=python3,kivy,kivmob \
-       --sdk-dir=$SDK_DIR \
-       --ndk-dir=$ANDROID_NDK_HOME \
-       --android-api=33 \
-       --arch=armeabi-v7a \
-       --add-jar app/libs/play-services-ads-21.0.0.aar \
-       --debug \
-       || (echo "❌ BUILD FAILED ❌" && cat .p4a/last_build.json || echo "Aucun log dans .p4a")
+        
+        source venv/bin/activate
+        ./venv/bin/p4a apk --private ./app \
+        --package=org.test.myapp \
+        --name "MyApp" \
+        --version 0.1 \
+        --bootstrap=sdl2 \
+        --requirements=python3,kivy,kivmob,android \
+        --sdk-dir=$SDK_DIR \
+        --ndk-dir=$ANDROID_NDK_HOME \
+        --android-api=36 \
+        --arch=armeabi-v7a \
+        --add-jar app/libs/play-services-ads-21.0.0.aar \
+        --debug \
+        || (echo "❌ BUILD FAILED ❌" && cat .p4a/last_build.json || echo "Aucun log dans .p4a")
     - name: Affiche le contenu de .p4a/last_build.json s'il existe
       if: always()
       run: |
@@ -99,4 +99,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: myapp-apk
-        path: ./bin/*.apk
+        path: ./myapp.apk
