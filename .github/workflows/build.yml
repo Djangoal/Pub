@@ -42,9 +42,9 @@ jobs:
        unzip cmdline-tools.zip -d $HOME/Android/cmdline-tools
        yes | $HOME/Android/cmdline-tools/cmdline-tools/bin/sdkmanager --licenses
        yes | $HOME/Android/cmdline-tools/cmdline-tools/bin/sdkmanager \
-      "platform-tools" \
-      "platforms;android-33" \
-      "build-tools;33.0.2"
+       "platform-tools" \
+       "platforms;android-33" \
+       "build-tools;33.0.2"
       
     - name: Set Android environment
       run: |
