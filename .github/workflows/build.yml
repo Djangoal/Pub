@@ -27,12 +27,26 @@ jobs:
           libffi-dev \
           libssl-dev \
           zlib1g-dev \
+          wget \
           pkg-config
 
     - name: Install Buildozer + Cython
       run: |
         pip install --upgrade pip Cython==0.29.33 setuptools
         pip install buildozer
+
+    - name: Install Android SDK / Build Tools
+      run: |
+        mkdir -p $HOME/Android/cmdline-tools
+        wget https://dl.google.com/android/repository/commandlinetools-linux-9123335_latest.zip -O cmdline-tools.zip
+        unzip cmdline-tools.zip -d $HOME/Android/cmdline-tools
+        yes | $HOME/Android/cmdline-tools/cmdline-tools/bin/sdkmanager --licenses
+        $HOME/Android/cmdline-tools/cmdline-tools/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+
+    - name: Set Android environment
+      run: |
+        echo "ANDROID_SDK_ROOT=$HOME/Android" >> $GITHUB_ENV
+        echo "PATH=$HOME/Android/cmdline-tools/cmdline-tools/bin:$HOME/Android/platform-tools:$PATH" >> $GITHUB_ENV
 
     - name: Build APK
       run: |
