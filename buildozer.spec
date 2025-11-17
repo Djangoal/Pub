@@ -3,7 +3,7 @@
 title = QuickAdApp
 package.name = quickadapp
 package.domain = org.example
-source.dir = .
+source.dir = app
 source.include_exts = py,png,jpg,kv,atlas
 
 version = 1.0.0
