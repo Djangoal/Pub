@@ -1,67 +1,55 @@
-name: Build Kivy APK
+name: Build Android APK
 
 on:
-  workflow_dispatch:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
-  build:
+  build_android:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout repo
       uses: actions/checkout@v4
 
-    - name: Install system dependencies
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install system deps
       run: |
         sudo apt-get update
-        sudo apt-get install -y \
-          python3 \
-          python3-pip \
-          python3-setuptools \
-          git \
-          zip \
-          openjdk-17-jdk \
-          unzip \
-          libffi-dev \
-          libssl-dev \
-          zlib1g-dev \
-          wget \
-          pkg-config
+        sudo apt-get install -y git zip unzip openjdk-17-jdk wget libffi-dev libssl-dev zlib1g-dev pkg-config
 
-    - name: Install Buildozer + Cython
+    - name: Install Buildozer
       run: |
-        pip install --upgrade pip Cython==0.29.33 setuptools
+        python -m pip install --upgrade pip setuptools cython==0.29.33
         pip install buildozer
 
-    - name: Download Android SDK & NDK
+    - name: Install Android SDK Command Line Tools + Build Tools
       run: |
-        mkdir -p $SDK_DIR
-        curl -s https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
-        unzip -q cmdline-tools.zip -d $SDK_DIR
-        mv $SDK_DIR/cmdline-tools $SDK_DIR/cmdline-tools-temp
-        mkdir -p $SDK_DIR/cmdline-tools/latest
-        mv $SDK_DIR/cmdline-tools-temp/* $SDK_DIR/cmdline-tools/latest
-        yes | $SDK_DIR/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK_DIR --licenses
-        $SDK_DIR/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK_DIR \
+        mkdir -p $HOME/Android/cmdline-tools
+        wget https://dl.google.com/android/repository/commandlinetools-linux-9123335_latest.zip -O cmdline-tools.zip
+        unzip cmdline-tools.zip -d $HOME/Android/cmdline-tools
+        yes | $HOME/Android/cmdline-tools/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/Android --licenses
+        $HOME/Android/cmdline-tools/cmdline-tools/bin/sdkmanager \
           "platform-tools" \
-          "platforms;android-35" \
-          "build-tools;35.0.0" \
-          "ndk;25.2.9519653"
-          
-      
-    - name: Set Android environment
+          "platforms;android-33" \
+          "build-tools;33.0.2"
+
+    - name: Configure Android env
       run: |
         echo "ANDROID_SDK_ROOT=$HOME/Android" >> $GITHUB_ENV
         echo "PATH=$HOME/Android/cmdline-tools/cmdline-tools/bin:$HOME/Android/platform-tools:$PATH" >> $GITHUB_ENV
 
-    - name: Build APK
+    - name: Build APK with Buildozer
       run: |
-        buildozer android debug
+        buildozer --verbose android debug
 
-    - name: Upload APK artifact
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: apk-debug
+        name: android-apk
         path: bin/*.apk
