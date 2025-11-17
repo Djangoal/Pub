@@ -11,7 +11,6 @@ version = 1.0.0
 requirements = python3, kivy==2.2.1, android, jnius, https://github.com/MichaelStott/KivMob/archive/refs/heads/master.zip
 
 orientation = portrait
-
 fullscreen = 0
 android.api = 33
 android.minapi = 21
@@ -23,27 +22,22 @@ android.ndk_api = 21
 android.permissions = INTERNET,ACCESS_NETWORK_STATE
 
 # Metadata AdMob (App ID de test Google)
-# ⚠️ À remplacer par ton propre App ID avant publication
 android.meta_data = com.google.android.gms.ads.APPLICATION_ID=ca-app-pub-3940256099942544~3347511713
 
-# Firebase Ads (obligatoire pour AdMob)
-android.gradle_dependencies = 
-    com.google.firebase:firebase-ads:21.4.0
+# Firebase Ads
+android.gradle_dependencies = com.google.firebase:firebase-ads:21.4.0
 
-# Obligatoire pour Firebase / modern Android
+# AndroidX
 android.enable_androidx = True
 
 # Empêche les conflits de compression
 android.allow_backup = False
 
+# Accept all SDK licenses automatically
+android.accept_sdk_license = True
+
 # Support multi-architecture si besoin (facultatif)
 # android.archs = arm64-v8a, armeabi-v7a
-
-# Icône (facultatif)
-# icon.filename = icon.png
-
-# Splash screen (facultatif)
-# presplash.filename = presplash.png
 
 [buildozer]
 log_level = 2
