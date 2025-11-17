@@ -35,16 +35,21 @@ jobs:
         pip install --upgrade pip Cython==0.29.33 setuptools
         pip install buildozer
 
-    - name: Install Android SDK / Build Tools
+    - name: Download Android SDK & NDK
       run: |
-       mkdir -p $HOME/Android/cmdline-tools
-       wget https://dl.google.com/android/repository/commandlinetools-linux-9123335_latest.zip -O cmdline-tools.zip
-       unzip cmdline-tools.zip -d $HOME/Android/cmdline-tools
-       yes | $HOME/Android/cmdline-tools/cmdline-tools/bin/sdkmanager --licenses
-       yes | $HOME/Android/cmdline-tools/cmdline-tools/bin/sdkmanager \
-       "platform-tools" \
-       "platforms;android-33" \
-       "build-tools;33.0.2"
+        mkdir -p $SDK_DIR
+        curl -s https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
+        unzip -q cmdline-tools.zip -d $SDK_DIR
+        mv $SDK_DIR/cmdline-tools $SDK_DIR/cmdline-tools-temp
+        mkdir -p $SDK_DIR/cmdline-tools/latest
+        mv $SDK_DIR/cmdline-tools-temp/* $SDK_DIR/cmdline-tools/latest
+        yes | $SDK_DIR/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK_DIR --licenses
+        $SDK_DIR/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK_DIR \
+          "platform-tools" \
+          "platforms;android-35" \
+          "build-tools;35.0.0" \
+          "ndk;25.2.9519653"
+          
       
     - name: Set Android environment
       run: |
