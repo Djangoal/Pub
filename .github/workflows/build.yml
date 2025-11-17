@@ -1,92 +1,50 @@
-name: Build APK with python-for-android
+name: Build Kivy APK
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      SDK_DIR: ${{ github.workspace }}/android-sdk
-      NDK_DIR: ${{ github.workspace }}/android-sdk/ndk
-      ANDROID_NDK_HOME: ${{ github.workspace }}/android-sdk/ndk/25.2.9519653
-
     steps:
-    - name: Checkout code
+    - name: Checkout repo
       uses: actions/checkout@v3
 
     - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          build-essential libltdl-dev \
-          zip unzip openjdk-17-jdk python3-pip \
-          libncurses-dev libtool libtool-bin automake autoconf pkg-config m4
+          build-essential \
+          zip \
+          python3 \
+          python3-pip \
+          python3-setuptools \
+          libffi-dev \
+          libssl-dev \
+          git \
+          openjdk-17-jdk \
+          zlib1g-dev
 
-    - name: Setup Python and install python-for-android
+    - name: Install Buildozer
       run: |
-        python3 -m venv venv
-        ./venv/bin/pip install --upgrade pip
-        ./venv/bin/pip install cython
-        ./venv/bin/pip install git+https://github.com/kivy/python-for-android.git
+        pip install --upgrade pip
+        pip install cython==0.29.33
+        pip install buildozer
 
-    - name: Download Android SDK and NDK
-      run: | 
-        mkdir -p $SDK_DIR
-        curl -s https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
-        unzip cmdline-tools.zip -d $SDK_DIR
-        mv $SDK_DIR/cmdline-tools $SDK_DIR/cmdline-tools-temp
-        mkdir -p $SDK_DIR/cmdline-tools/latest
-        mv $SDK_DIR/cmdline-tools-temp/* $SDK_DIR/cmdline-tools/latest
-
-        chmod +x $SDK_DIR/cmdline-tools/latest/bin/sdkmanager
-
-        yes | $SDK_DIR/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK_DIR --licenses
-        $SDK_DIR/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK_DIR \
-          "platform-tools" \
-          "platforms;android-36" \
-          "build-tools;36.0.0" \
-          "ndk;25.2.9519653"
-
-    - name: Clean autotools caches
+    - name: Install Android SDK / NDK
       run: |
-        find . -name "aclocal.m4" -delete
-        find . -name "autom4te.cache" -type d -exec rm -rf {} +
+        sudo apt-get install -y unzip
+        buildozer android sdk
 
     - name: Build APK
       run: |
-        set -e
-        source venv/bin/activate
-        ./venv/bin/p4a apk --private ./app \
-          --package=org.example.monapp2 \
-          --name="Mon budget perso 2" \
-          --version=0.1 \
-          --bootstrap=sdl2 \
-          --requirements=python3,kivy,pyjnius,kivmob \
-          --arch=armeabi-v7a \
-          --sdk_dir=$SDK_DIR \
-          --ndk_dir=$ANDROID_NDK_HOME \
-          --android_api=36 \
-          --orientation=portrait \
-          --dist-name=monapp2 \
-          --permission=INTERNET \
-          --permission=ACCESS_NETWORK_STATE \
-          --debug
-          --add-aar=app/libs/play-services-ads-21.0.0.aar \
-          --add-aar=app/libs/play-services-ads-lite-21.0.0.aar \
-          --add-aar=app/libs/play-services-basement-17.6.0.aar \
-          --add-aar=app/libs/play-services-tasks-17.2.1.aar \
-          --add-aar=app/libs/play-services-ads-base-21.0.0.aar \
-          --add-aar=app/libs/play-services-ads-identifier-17.0.0.aar
+        buildozer android debug
 
-    - name: Rename APK
-      run: |
-        APK_FILE=$(find . -name "*.apk" | head -n 1)
-        mv "$APK_FILE" "mon_budget_perso_2.apk"
-
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v3
       with:
-        name: mon-budget-perso-2-apk
-        path: ./mon_budget_perso_2.apk
+        name: apk-debug
+        path: bin/*.apk
