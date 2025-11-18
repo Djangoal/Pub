@@ -1,12 +1,19 @@
-name: Build avec recherche et vérification 
+name: Build avec recherche et vérification 3
 
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch:
 
-env:
-  BUILD_TYPE: debug
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "Choose build type"
+        required: true
+        default: "debug"
+        type: choice
+        options:
+          - debug
+          - release
 
 jobs:
   build_android:
@@ -15,6 +22,9 @@ jobs:
     steps:
     - name: 🧩 Checkout repo
       uses: actions/checkout@v4
+
+    - name: ▶️ Display selected build type
+      run: echo "Selected build type: ${{ github.event.inputs.build_type }}"
 
     - name: 🐍 Set up Python
       uses: actions/setup-python@v5
@@ -49,16 +59,18 @@ jobs:
 
     - name: 🏗️ Build APK with Buildozer
       run: |
-        if [ "$BUILD_TYPE" = "release" ]; then
-          buildozer android release
+        if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
+          echo "Building RELEASE..."
+          buildozer --verbose android release
         else
-          buildozer android debug
+          echo "Building DEBUG..."
+          buildozer --verbose android debug
         fi
 
     - name: 🔍 Search for APK
       run: |
         echo "Searching for APKs in ./bin/ ..."
-        
+
         if [ ! -d "bin" ]; then
           echo "❌ ERROR: Directory ./bin/ not found!"
           exit 1
