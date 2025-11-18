@@ -1,8 +1,6 @@
 name: Build avec recherche et vérification 3
 
 on:
-  push:
-    branches: [ "main" ]
 
   workflow_dispatch:
     inputs:
@@ -53,6 +51,11 @@ jobs:
           "platforms;android-33" \
           "build-tools;33.0.2"
 
+    - name: Install apktool
+      run: |
+       sudo apt-get update
+       sudo apt-get install -y apktool
+
     - name: 🔧 Configure Android env
       run: |
         echo "ANDROID_SDK_ROOT=$HOME/Android" >> $GITHUB_ENV
@@ -68,27 +71,43 @@ jobs:
           buildozer --verbose android debug
         fi
 
-    - name: 🔍 Search for APK
-      run: |
-        echo "Searching for APKs in ./bin/ ..."
-
-        if [ ! -d "bin" ]; then
-          echo "❌ ERROR: Directory ./bin/ not found!"
-          exit 1
-        fi
-
-        APK_FILE=$(ls bin/*.apk 2>/dev/null | head -n 1)
-
-        if [ -z "$APK_FILE" ]; then
-          echo "❌ ERROR: No APK found inside ./bin/"
-          exit 1
-        fi
-
-        echo "✓ APK found: $APK_FILE"
-        echo "APK_FILE=$APK_FILE" >> $GITHUB_ENV
-
+    
     - name: 📡 Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: android-apk
         path: ${{ env.APK_FILE }}
+
+    - name: Find APK for AdView check
+      id: find_apk
+      run: |
+       echo "🔍 Searching for APK to check AdView..."
+
+       APK_FILE=$(find .buildozer/android -type f -name "*.apk" | head -n 1)
+
+       if [ -z "$APK_FILE" ]; then
+       echo "❌ ERROR: No APK found after build!"
+       exit 1
+       fi
+
+       echo "✓ APK found at: $APK_FILE"
+       echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
+    - name: Check AdView in APK
+      run: |
+       echo "🔍 Checking for AdView in APK..."
+
+       APK_PATH="${{ steps.find_apk.outputs.apk_path }}"
+       echo "Using APK: $APK_PATH"
+
+       # Décompiler dans un dossier temporaire
+       TMP_DIR=$(mktemp -d)
+       apktool d "$APK_PATH" -o "$TMP_DIR" -f > /dev/null
+
+       # Chercher la présence de AdView dans les fichiers XML (layout, manifest, etc.)
+       if grep -R "AdView" "$TMP_DIR" >/dev/null; then
+       echo "✅ AdView found in APK!"
+       else
+        echo "❌ ERROR: No AdView found in APK!"
+        exit 1
+        fi
+    
