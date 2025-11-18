@@ -21,8 +21,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: ▶️ Display selected build type
-      run: |
-       echo "Selected build type: ${{ github.event.inputs.build_type }}"
+      run: echo "Selected build type: ${{ github.event.inputs.build_type }}"
 
     - name: 🐍 Set up Python
       uses: actions/setup-python@v5
@@ -52,8 +51,8 @@ jobs:
 
     - name: Install apktool
       run: |
-       sudo apt-get update
-       sudo apt-get install -y apktool
+        sudo apt-get update
+        sudo apt-get install -y apktool
 
     - name: 🔧 Configure Android env
       run: |
@@ -70,46 +69,38 @@ jobs:
           buildozer --verbose android debug
         fi
 
-    - name: Upload APK
+    - name: 📤 Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: android-apk-${{ github.event.inputs.build_type }}
-        path: bin/*.apk{{ github.event.inputs.build_type }}*.apk
-        
-    
-        
-        
+        name: apk-${{ github.event.inputs.build_type }}
+        path: bin/*.apk
 
-    - name: Find APK for AdView check
+    # 🔥 Recherche APK APRÈS le upload et APRÈS le build
+    - name: 🔍 Find APK for AdView check
       id: find_apk
       run: |
-       echo "🔍 Searching for APK to check AdView..."
+        echo "Searching for APK inside .buildozer/android..."
+        APK_FILE=$(find .buildozer/android -type f -name "*.apk" | head -n 1)
 
-       APK_FILE=$(find .buildozer/android -type f -name "*.apk" | head -n 1)
-
-       if [ -z "$APK_FILE" ]; then
-       echo "❌ ERROR: No APK found after build!"
-       exit 1
-       fi
-
-       echo "✓ APK found at: $APK_FILE"
-       echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
-    - name: Check AdView in APK
-      run: |
-       echo "🔍 Checking for AdView in APK..."
-
-       APK_PATH="${{ steps.find_apk.outputs.apk_path }}"
-       echo "Using APK: $APK_PATH"
-
-       # Décompiler dans un dossier temporaire
-       TMP_DIR=$(mktemp -d)
-       apktool d "$APK_PATH" -o "$TMP_DIR" -f > /dev/null
-
-       # Chercher la présence de AdView dans les fichiers XML (layout, manifest, etc.)
-       if grep -R "AdView" "$TMP_DIR" >/dev/null; then
-       echo "✅ AdView found in APK!"
-       else
-        echo "❌ ERROR: No AdView found in APK!"
-        exit 1
+        if [ -z "$APK_FILE" ]; then
+          echo "❌ ERROR: No APK found!"
+          exit 1
         fi
-    
+
+        echo "✓ APK found at: $APK_FILE"
+        echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
+
+    - name: 🔎 Check AdView in APK
+      run: |
+        APK_PATH="${{ steps.find_apk.outputs.apk_path }}"
+        echo "Checking AdView inside: $APK_PATH"
+
+        TMP_DIR=$(mktemp -d)
+        apktool d "$APK_PATH" -o "$TMP_DIR" -f > /dev/null
+
+        if grep -R "AdView" "$TMP_DIR" >/dev/null; then
+          echo "✅ AdView found!"
+        else
+          echo "❌ ERROR: No AdView found in APK!"
+          exit 1
+        fi
