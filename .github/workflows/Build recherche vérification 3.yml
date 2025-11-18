@@ -1,11 +1,10 @@
 name: Build avec recherche et vérification 3
 
 on:
-
   workflow_dispatch:
     inputs:
       build_type:
-        description: "Choose build type"
+        description: "Type de build (debug ou release)"
         required: true
         default: "debug"
         type: choice
