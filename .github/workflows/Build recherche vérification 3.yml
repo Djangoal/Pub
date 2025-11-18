@@ -1,53 +1,95 @@
 name: Build avec recherche et vérification 3
 
 on:
-  workflow_dispatch:  # 🔥 Pas de déclenchement automatique
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "Type de build (debug ou release)"
+        required: true
+        default: "debug"
+        type: choice
+        options:
+          - debug
+          - release
 
 jobs:
-  build:
+  build_android:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: 🧩 Checkout repo
+      uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y python3 python3-pip python3-setuptools python3-wheel zip unzip openjdk-17-jdk
-          pip install buildozer cython
+    - name: ▶️ Display selected build type
+      run: |
+       echo "Selected build type: ${{ github.event.inputs.build_type }}"
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
 
-      - name: Install Android SDK/NDK
-        run: |
-          yes | sdkmanager --licenses
-          sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0"
+    - name: 📦 Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential libltdl-dev zip unzip openjdk-17-jdk python3-pip libncurses-dev libtool libtool-bin automake autoconf pkg-config m4
+    - name: 🔧 Install Buildozer
+      run: |
+        python -m pip install --upgrade pip setuptools cython==0.29.33
+        pip install buildozer
+    - name: 📱 Install Android SDK + Build tools
+      run: |
+        mkdir -p $HOME/Android/cmdline-tools
+        wget https://dl.google.com/android/repository/commandlinetools-linux-9123335_latest.zip -O cmdline-tools.zip
+        unzip cmdline-tools.zip -d $HOME/Android/cmdline-tools
+        yes | $HOME/Android/cmdline-tools/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/Android --licenses
+        $HOME/Android/cmdline-tools/cmdline-tools/bin/sdkmanager \
+          "platform-tools" \
+          "platforms;android-33" \
+          "build-tools;33.0.2"
+    - name: Install apktool
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y apktool
+    - name: 🔧 Configure Android env
+      run: |
+        echo "ANDROID_SDK_ROOT=$HOME/Android" >> $GITHUB_ENV
+        echo "PATH=$HOME/Android/cmdline-tools/cmdline-tools/bin:$HOME/Android/platform-tools:$PATH" >> $GITHUB_ENV
+    - name: 🏗️ Build APK with Buildozer
+      run: |
+        if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
+          echo "Building RELEASE..."
+          buildozer --verbose android release
+        else
+          echo "Building DEBUG..."
+          buildozer --verbose android debug
+        fi
+    - name: 📤 Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk-${{ github.event.inputs.build_type }}
+        path: bin/*.apk
 
-      - name: Build APK
-        run: |
-          buildozer android release
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: APK
-          path: |
-            .buildozer/android/platform/build-armeabi-v7a/dists/*/bin/*.apk
-
-      # 🔍 Recherche et ouverture du fichier APK APRÈS l’upload
-      - name: Find and unzip APK
-        run: |
-          APK_PATH=$(find .buildozer/android/platform/build-armeabi-v7a/dists -name "*.apk" | head -n 1)
-          echo "APK found at: $APK_PATH"
-          mkdir extracted_apk
-          unzip -o "$APK_PATH" -d extracted_apk
-
-      # 🔎 Vérification présence de "AdView" dans le code smali
-      - name: Check for AdView
-        run: |
-          echo "Searching for AdView..."
-          if grep -R "AdView" -n extracted_apk/ ; then
-            echo "❌ AdView FOUND inside the APK!"
-            exit 1
-          else
-            echo "✅ No AdView found in APK."
-          fi
+    # 🔥 Recherche APK APRÈS le upload et APRÈS le build
+    - name: 🔍 Find APK for AdView check
+      id: find_apk
+      run: |
+        echo "Searching for APK inside .buildozer/android..."
+        APK_FILE=$(find .buildozer/android -type f -name "*.apk" | head -n 1)
+        if [ -z "$APK_FILE" ]; then
+          echo "❌ ERROR: No APK found!"
+          exit 1
+        fi
+        echo "✓ APK found at: $APK_FILE"
+        echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
+    - name: 🔎 Check AdView in APK
+      run: |
+        APK_PATH="${{ steps.find_apk.outputs.apk_path }}"
+        echo "Checking AdView inside: $APK_PATH"
+        TMP_DIR=$(mktemp -d)
+        apktool d "$APK_PATH" -o "$TMP_DIR" -f > /dev/null
+        if grep -R "AdView" "$TMP_DIR" >/dev/null; then
+          echo "✅ AdView found!"
+        else
+          echo "❌ ERROR: No AdView found in APK!"
+          exit 1
+        fi
