@@ -30,7 +30,8 @@ jobs:
           echo "BUILD_TYPE=${{ github.event.inputs.build_type }}" >> $GITHUB_ENV
         fi
     - name: Display build type
-      run: echo "Building: $BUILD_TYPE"
+      run: |
+       echo "Building: $BUILD_TYPE"
 
     - name: Set up Python
       uses: actions/setup-python@v5
