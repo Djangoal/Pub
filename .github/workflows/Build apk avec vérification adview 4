@@ -1,0 +1,112 @@
+name: Build Android APK + Vérification AdView 4
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "Type de build"
+        required: true
+        default: "debug"
+        type: choice
+        options:
+          - debug
+          - release
+
+jobs:
+  build_android:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 🧩 Checkout repository
+      uses: actions/checkout@v4
+
+    - name: ▶️ Display selected build type
+      run: echo "Selected build type: ${{ github.event.inputs.build_type }}"
+
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: 📦 Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential libltdl-dev zip unzip openjdk-17-jdk \
+        python3-pip libncurses-dev libtool libtool-bin automake autoconf pkg-config m4 apktool
+
+    - name: 🔧 Install Buildozer
+      run: |
+        python -m pip install --upgrade pip setuptools cython==0.29.33
+        pip install buildozer
+
+    - name: 📱 Install Android SDK + Build Tools
+      run: |
+        mkdir -p $HOME/Android/cmdline-tools
+        wget https://dl.google.com/android/repository/commandlinetools-linux-9123335_latest.zip -O cmdline-tools.zip
+        unzip cmdline-tools.zip -d $HOME/Android/cmdline-tools
+        yes | $HOME/Android/cmdline-tools/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/Android --licenses
+        $HOME/Android/cmdline-tools/cmdline-tools/bin/sdkmanager \
+          "platform-tools" \
+          "platforms;android-33" \
+          "build-tools;33.0.2"
+
+    - name: 🔧 Configure Android ENV
+      run: |
+        echo "ANDROID_SDK_ROOT=$HOME/Android" >> $GITHUB_ENV
+        echo "PATH=$HOME/Android/cmdline-tools/cmdline-tools/bin:$HOME/Android/platform-tools:$PATH" >> $GITHUB_ENV
+
+    - name: 🏗️ Build APK (debug/release)
+      run: |
+        if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
+          echo "➡ Building RELEASE..."
+          buildozer --verbose android release
+        else
+          echo "➡ Building DEBUG..."
+          buildozer --verbose android debug
+        fi
+
+    - name: 📤 Upload APK/AAB (bin/)
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk-${{ github.event.inputs.build_type }}
+        path: |
+          bin/*.apk
+          bin/*.aab
+        if-no-files-found: warn
+
+    # 🔥 Recherche APK APRÈS l'upload
+    - name: 🔍 Find APK or AAB for AdView check
+      id: find_apk
+      run: |
+        echo "Searching for release artifacts in ./bin/... "
+        
+        APK_FILE=$(find bin -type f \( -name "*${{ github.event.inputs.build_type }}*.apk" -o -name "*${{ github.event.inputs.build_type }}*.aab" \) | head -n 1)
+
+        if [ -z "$APK_FILE" ]; then
+          echo "⚠ Aucun APK/AAB avec suffixe connu, recherche plus large..."
+          APK_FILE=$(find bin -type f \( -name "*.apk" -o -name "*.aab" \) | head -n 1)
+        fi
+
+        if [ -z "$APK_FILE" ]; then
+          echo "❌ ERROR: No APK or AAB found in bin/"
+          exit 1
+        fi
+
+        echo "✓ Found: $APK_FILE"
+        echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
+
+    - name: 🔎 Check AdView in APK
+      run: |
+        APK_PATH="${{ steps.find_apk.outputs.apk_path }}"
+        echo "Checking AdView inside: $APK_PATH"
+
+        TMP_DIR=$(mktemp -d)
+
+        apktool d "$APK_PATH" -o "$TMP_DIR" -f > /dev/null
+
+        if grep -R "AdView" "$TMP_DIR" >/dev/null; then
+          echo "✅ AdView found!"
+        else
+          echo "❌ ERROR: No AdView found in APK!"
+          exit 1
+        fi
