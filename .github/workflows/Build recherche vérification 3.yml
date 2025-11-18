@@ -72,11 +72,11 @@ jobs:
         fi
 
     
-    - name: 📡 Upload APK
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: android-apk
-        path: ${{ env.APK_FILE }}
+        path: bin/*.apk
 
     - name: Find APK for AdView check
       id: find_apk
