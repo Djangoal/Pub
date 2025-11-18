@@ -2,6 +2,7 @@ from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
+from kivy.metrics import dp
 from kivmob import KivMob, TestIds
 
 class QuickAdApp(App):
@@ -21,21 +22,26 @@ class QuickAdApp(App):
             pass
 
         root = BoxLayout(orientation='vertical', padding=16, spacing=12)
-        root.add_widget(Label(text="Demo AdMob complet", size_hint=(1,0.15)))
 
-        b1 = Button(text="Afficher bannière")
+        root.add_widget(Label(text="Demo AdMob complet", size_hint=(1, 0.15)))
+
+        b1 = Button(text="Afficher bannière",
+                    size_hint_y=None, height=dp(38))
         b1.bind(on_release=lambda *_: self.ads.show_banner())
         root.add_widget(b1)
 
-        b2 = Button(text="Cacher bannière")
+        b2 = Button(text="Cacher bannière",
+                    size_hint_y=None, height=dp(38))
         b2.bind(on_release=lambda *_: self.ads.hide_banner())
         root.add_widget(b2)
 
-        b3 = Button(text="Afficher interstitiel")
+        b3 = Button(text="Afficher interstitiel",
+                    size_hint_y=None, height=dp(38))
         b3.bind(on_release=lambda *_: self.show_inter())
         root.add_widget(b3)
 
-        b4 = Button(text="Afficher rewarded")
+        b4 = Button(text="Afficher rewarded",
+                    size_hint_y=None, height=dp(38))
         b4.bind(on_release=lambda *_: self.show_reward())
         root.add_widget(b4)
 
@@ -55,6 +61,6 @@ class QuickAdApp(App):
         except:
             pass
 
+
 if __name__ == "__main__":
     QuickAdApp().run()
-    
