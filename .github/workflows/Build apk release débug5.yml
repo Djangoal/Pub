@@ -1,8 +1,6 @@
 name: Build Apk release et debug 5
 
 on:
-  push:
-    branches: [ "main" ]
   workflow_dispatch:
     inputs:
       build_type:
@@ -71,9 +69,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
        name: android-apk
-       path: |
-          bin/*debug*.apk
-          bin/*release*.apk
+       path: bin/*.apk
 
     - name: Verify AdView presence inside APK
       run: |
