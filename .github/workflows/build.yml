@@ -4,6 +4,15 @@ on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: "Choose build type"
+        required: false
+        default: "debug"
+        type: choice
+        options:
+          - debug
+          - release
 
 jobs:
   build_android:
@@ -12,6 +21,17 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
+
+    - name: Set build type
+      run: |
+        if [ -z "${{ github.event.inputs.build_type }}" ]; then
+          echo "BUILD_TYPE=debug" >> $GITHUB_ENV
+        else
+          echo "BUILD_TYPE=${{ github.event.inputs.build_type }}" >> $GITHUB_ENV
+        fi
+    - name: Display build type
+      run: |
+       echo "Building: $BUILD_TYPE"
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -22,7 +42,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential libltdl-dev zip unzip openjdk-17-jdk python3-pip libncurses-dev libtool libtool-bin automake autoconf pkg-config m4
-      
+
     - name: Install Buildozer
       run: |
         python -m pip install --upgrade pip setuptools cython==0.29.33
@@ -46,10 +66,20 @@ jobs:
 
     - name: Build APK with Buildozer
       run: |
-        buildozer --verbose android debug
+        if [ "$BUILD_TYPE" = "release" ]; then
+            buildozer --verbose android release
+        else
+            buildozer --verbose android debug
+        fi
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: android-apk
         path: bin/*.apk
+
+    - name: Verify AdView presence inside APK
+      run: |
+        APK_FILE=$(ls bin/*.apk | head -n 1)
+        echo "Checking AdView inside $APK_FILE..."
+        unzip -p "$APK_FILE" classes.dex | strings | grep -q "AdView" && echo "AdView FOUND!" || (echo "ERROR: AdView not found!" && exit 1)
