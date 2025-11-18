@@ -32,7 +32,8 @@ jobs:
     - name: 📦 Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libltdl-dev zip unzip openjdk-17-jdk python3-pip libncurses-dev libtool libtool-bin automake autoconf pkg-config m4
+        sudo apt-get install -y build-essential libltdl-dev zip unzip openjdk-17-jdk python3-pip \
+          libncurses-dev libtool libtool-bin automake autoconf pkg-config m4 apktool
 
     - name: 🔧 Install Buildozer
       run: |
@@ -50,11 +51,6 @@ jobs:
           "platforms;android-33" \
           "build-tools;33.0.2"
 
-    - name: Install apktool
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y apktool
-
     - name: 🔧 Configure Android env
       run: |
         echo "ANDROID_SDK_ROOT=$HOME/Android" >> $GITHUB_ENV
@@ -63,45 +59,47 @@ jobs:
     - name: 🏗️ Build APK with Buildozer
       run: |
         if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
-          echo "Building RELEASE..."
-          buildozer --verbose android release
+            echo "Building RELEASE..."
+            buildozer --verbose android release
         else
-          echo "Building DEBUG..."
-          buildozer --verbose android debug
+            echo "Building DEBUG..."
+            buildozer --verbose android debug
         fi
 
     - name: 📤 Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: apk-${{ github.event.inputs.build_type }}
-        path: bin/*.apk
+        path: |
+          .buildozer/android/**/*.apk
+          bin/*.apk
+        if-no-files-found: warn
 
-    # 🔥 Recherche APK APRÈS le upload et APRÈS le build
-    - name: 🔍 Find APK for AdView check
+    - name: 🔍 Find APK after upload
       id: find_apk
       run: |
-        echo "Searching for APK inside .buildozer/android..."
+        echo "Searching for APK in all known Buildozer locations..."
         APK_FILE=$(find .buildozer/android -type f -name "*.apk" | head -n 1)
 
         if [ -z "$APK_FILE" ]; then
-          echo "❌ ERROR: No APK found!"
+          echo "❌ No APK found!"
           exit 1
         fi
 
-        echo "✓ APK found at: $APK_FILE"
+        echo "✓ APK found: $APK_FILE"
         echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
 
     - name: 🔎 Check AdView in APK
       run: |
         APK_PATH="${{ steps.find_apk.outputs.apk_path }}"
-        echo "Checking AdView inside: $APK_PATH"
+        echo "Using: $APK_PATH"
 
         TMP_DIR=$(mktemp -d)
         apktool d "$APK_PATH" -o "$TMP_DIR" -f > /dev/null
 
         if grep -R "AdView" "$TMP_DIR" >/dev/null; then
-          echo "✅ AdView found!"
+          echo "✅ AdView found inside APK"
         else
-          echo "❌ ERROR: No AdView found in APK!"
+          echo "❌ ERROR: AdView NOT found!"
           exit 1
         fi
