@@ -69,29 +69,33 @@ jobs:
           echo "Building DEBUG..."
           buildozer --verbose android debug
         fi
-    - name: Find APK path
-      id: find_apk_for_upload
+    
+    - name: Find APK (signed or unsigned)
+      id: find_apk
       run: |
-        echo "🔍 Searching for APK inside .buildozer/android ..."
-        APK_FILE=$(find .buildozer/android -type f -name "*.apk" | head -n 1)
-        if [ -z "$APK_FILE" ]; then
-          echo "❌ ERROR: No APK found!"
-          exit 1
-        fi
-        echo "Found APK: $APK_FILE"
-        echo "apk_file=$APK_FILE" >> $GITHUB_OUTPUT
-    # UPLOAD depuis le vrai emplacement des APK
+       echo "Searching for APK..."
+       APK=$(find . -type f -name "*release*.apk" | head -n 1)
+       if [ -z "$APK" ]; then
+       APK=$(find . -type f -name "*debug*.apk" | head -n 1)
+       fi
+       if [ -z "$APK" ]; then
+       echo "❌ No APK found!"
+       exit 1
+       fi
+
+       echo "✓ APK found at: $APK"
+       echo "apk=$APK" >> $GITHUB_OUTPUT
+
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: apk-${{ github.event.inputs.build_type }}
-        path: ${{ steps.find_apk_for_upload.outputs.apk_file }}
-    
+       name: apk-${{ github.event.inputs.build_type }}
+       path: ${{ steps.find_apk.outputs.apk }}
 
     # Recherche APK APRÈS le build
     - name: 🔍 Find APK for AdView check
-      id: find_apk
-      run: |
+    id: find_apk
+    run: |
         echo "Searching for any APK inside .buildozer/android..."
         APK_FILE=$(find .buildozer/android -type f -name "*.apk" | head -n 1)
         if [ -z "$APK_FILE" ]; then
@@ -101,8 +105,8 @@ jobs:
         echo "✓ APK found at: $APK_FILE"
         echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
         
-    - name: 🔎 Check AdView in APK
-      run: |
+        - name: 🔎 Check AdView in APK
+          run: |
         APK_PATH="${{ steps.find_apk.outputs.apk_path }}"
         echo "Checking AdView inside: $APK_PATH"
         TMP_DIR=$(mktemp -d)
