@@ -69,15 +69,23 @@ jobs:
           echo "Building DEBUG..."
           buildozer --verbose android debug
         fi
-
+    - name: Find APK path
+      id: find_apk_for_upload
+      run: |
+        echo "🔍 Searching for APK inside .buildozer/android ..."
+        APK_FILE=$(find .buildozer/android -type f -name "*.apk" | head -n 1)
+        if [ -z "$APK_FILE" ]; then
+          echo "❌ ERROR: No APK found!"
+          exit 1
+        fi
+        echo "Found APK: $APK_FILE"
+        echo "apk_file=$APK_FILE" >> $GITHUB_OUTPUT
     # UPLOAD depuis le vrai emplacement des APK
-    - name: 📤 Upload APK (universal finder)
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: apk-${{ github.event.inputs.build_type }}
-        path: |
-          $(find .buildozer/android -type f -name "*.apk")
-        if-no-files-found: error
+        path: ${{ steps.find_apk_for_upload.outputs.apk_file }}
     
 
     # Recherche APK APRÈS le build
